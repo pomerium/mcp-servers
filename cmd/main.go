@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/pomerium/mcp-servers/httputil"
 	"github.com/pomerium/mcp-servers/server"
@@ -16,6 +17,10 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
+		port = "8080"
+	}
 	handler := server.BuildHandlers(ctx)
-	return httputil.ListenAndServe(ctx, ":3010", handler)
+	return httputil.ListenAndServe(ctx, ":"+port, handler)
 }
