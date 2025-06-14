@@ -15,10 +15,12 @@ This is not an official Pomerium product.
 # Quick Start
 
 1. Choose your Pomerium installation method below.
-2. Enable the relevant MCP server(s) by providing the appropriate environment variables.
+2. Configure relevant MCP server(s):
    - [Notion](./notion/README.md): A specially tailored Notion MCP server that uses Notion OAuth for the current user and specifically implements [OpenAI Deep Researcher requirements](https://platform.openai.com/docs/mcp).
 
 ## Docker Compose Example
+
+Update (`pomerium-config.yaml`)[./pomerium-config.yaml] with configs for relevant MCP servers.
 
 ```docker
 services:
@@ -40,7 +42,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./config.yaml:/pomerium/config.yaml
+      - ./pomerium-config.yaml:/pomerium/config.yaml
       - pomerium-autocert:/data/autocert
 
   mcp-servers:
