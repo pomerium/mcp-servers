@@ -63,6 +63,8 @@ volumes:
 
 # How does it work
 
+[![MCP Webinar](https://img.youtube.com/vi/p0UJ_VlaWxY/0.jpg)](https://www.youtube.com/watch?v=p0UJ_VlaWxY)
+
 ## Token Vocabulary
 
 - **External Token (TE):**
