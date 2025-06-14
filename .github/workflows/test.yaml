@@ -33,4 +33,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          platforms: linux/amd64 linux/arm64
+          platforms: linux/amd64,linux/arm64
