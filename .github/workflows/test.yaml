@@ -1,11 +1,11 @@
-name: Docker Main
+name: Docker
 permissions:
   contents: read
 on:
   pull_request:
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-22.04
     outputs:
       sha-tag: ${{ steps.metadata.outputs.sha-tag }}
