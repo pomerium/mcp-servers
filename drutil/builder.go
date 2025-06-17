@@ -21,26 +21,34 @@ func BuildMCPServer(
 		server.WithRecovery(),
 	)
 
-	search := mcp.NewTool(
-		"search",
-		mcp.WithDescription(p.GetSearchSyntax()),
-		mcp.WithString("query",
-			mcp.Required(),
-			mcp.Description("The search query to execute"),
-		),
-	)
+	// Get tool definitions
+	tools := GetTools(p)
 
-	fetch := mcp.NewTool(
-		"fetch",
-		mcp.WithDescription("Fetch a document by ID"),
-		mcp.WithString("id",
-			mcp.Required(),
-			mcp.Description("The ID of the document to fetch"),
-		),
-	)
-
-	server.AddTool(search, searchHandler(p))
-	server.AddTool(fetch, fetchHandler(p))
+	// Create and register tools
+	for _, def := range tools {
+		switch def.Name {
+		case "search":
+			tool := mcp.NewTool(
+				def.Name,
+				mcp.WithDescription(def.Description),
+				mcp.WithString("query",
+					mcp.Required(),
+					mcp.Description("The search query to execute"),
+				),
+			)
+			server.AddTool(tool, searchHandler(p))
+		case "fetch":
+			tool := mcp.NewTool(
+				def.Name,
+				mcp.WithDescription(def.Description),
+				mcp.WithString("id",
+					mcp.Required(),
+					mcp.Description("The ID of the document to fetch"),
+				),
+			)
+			server.AddTool(tool, fetchHandler(p))
+		}
+	}
 
 	return server
 }

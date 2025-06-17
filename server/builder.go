@@ -23,6 +23,8 @@ func BuildHandlers(ctx context.Context) http.Handler {
 			server.WithHTTPContextFunc(ctxutil.TokenFromRequest),
 		)
 		mux.Handle(path.Join("/", name), http.HandlerFunc(httpHandler.ServeHTTP))
+
+		mux.Handle(path.Join("/", name, ".well-known", "mcp", "tools"), toolsHandler(mcpServer, builder))
 	}
 
 	return mux
