@@ -58,7 +58,7 @@ volumes:
 
 # See Also
 
-- [MCP UI App Demo](https://github.com/pomerium/mcp-demo/app): A Node.js/React UI app demonstrating how to build a simple application that calls the OpenAI API with MCP server support.
+- [MCP UI App Demo](https://github.com/pomerium/mcp-app-demo): A Node.js/React UI app demonstrating how to build a simple application that calls the OpenAI API with MCP server support.
 - [Support Forum](https://discuss.pomerium.com/)
 - [Pomerium Docs](https://www.pomerium.com/docs)
 
