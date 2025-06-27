@@ -15,6 +15,7 @@ This repository contains a collection of reference MCP Streaming HTTP servers de
 1. Choose your preferred Pomerium installation method below.
 2. Configure the relevant MCP server(s):
    - [Notion](./notion/README.md): A tailored Notion MCP server that uses Notion OAuth for the current user and specifically implements [OpenAI Deep Researcher requirements](https://platform.openai.com/docs/mcp).
+   - [SQLite](./sqlite/README.md): A simple readonly MCP server that can query SQLite databases.
 
 ## Docker Compose Example
 
@@ -63,7 +64,9 @@ volumes:
 
 # How does it work
 
-[![MCP Webinar](https://img.youtube.com/vi/p0UJ_VlaWxY/0.jpg)](https://www.youtube.com/watch?v=p0UJ_VlaWxY)
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=p0UJ_VlaWxY
+" target="_blank"><img src="http://img.youtube.com/vi/p0UJ_VlaWxY/0.jpg"
+alt="MCP in the Enterprise Environment" width="240" height="180" border="10" /></a>
 
 ## Token Vocabulary
 
