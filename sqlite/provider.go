@@ -237,7 +237,7 @@ func NewServer(ctx context.Context, env map[string]string) (*server.MCPServer, e
 	// Initialize Database Service
 	dbService, err := NewDatabaseService(dbFile)
 	if err != nil {
-		log.Fatalf("Failed to initialize database service: %v", err)
+		return nil, fmt.Errorf("open db: %w", err)
 	}
 	go func() {
 		<-ctx.Done()
