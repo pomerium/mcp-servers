@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jomei/notionapi"
+	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/pomerium/mcp-servers/ctxutil"
 	"github.com/pomerium/mcp-servers/drutil"
@@ -19,6 +20,12 @@ func New(context.Context) drutil.Provider {
 	return &notion{
 		http: httputil.NewDebugHTTPClient(func(s string) { fmt.Println(s) }),
 	}
+}
+
+func NewServer(ctx context.Context, _ map[string]string) (*server.MCPServer, error) {
+	provider := New(ctx)
+	mcpServer := drutil.BuildMCPServer("Notion", provider)
+	return mcpServer, nil
 }
 
 //go:embed search.txt
