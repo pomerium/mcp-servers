@@ -8,8 +8,8 @@ import (
 
 type authKey struct{}
 
-// TokenFromRequest extracts the authorization token from the HTTP request
-func TokenFromRequest(ctx context.Context, r *http.Request) context.Context {
+// AuthorizationTokenFromRequest extracts the authorization token from the HTTP request
+func AuthorizationTokenFromRequest(ctx context.Context, r *http.Request) context.Context {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		return ctx
@@ -21,8 +21,8 @@ func TokenFromRequest(ctx context.Context, r *http.Request) context.Context {
 	return ctx
 }
 
-// TokenFromContext retrieves the authorization token from the context
-func TokenFromContext(ctx context.Context) (string, error) {
+// AuthorizationTokenFromContext retrieves the authorization token from the context
+func AuthorizationTokenFromContext(ctx context.Context) (string, error) {
 	auth, ok := ctx.Value(authKey{}).(string)
 	if !ok {
 		return "", fmt.Errorf("missing auth")
