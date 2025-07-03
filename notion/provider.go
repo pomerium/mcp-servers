@@ -40,7 +40,7 @@ func (n *notion) GetSearchSyntax() string {
 }
 
 func (n *notion) getClient(ctx context.Context) (*notionapi.Client, error) {
-	token, err := ctxutil.TokenFromContext(ctx)
+	token, err := ctxutil.AuthorizationTokenFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get token from context: %w", err)
 	}
