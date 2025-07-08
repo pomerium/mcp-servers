@@ -140,8 +140,28 @@ func (ds *DatabaseService) describeTableHandler(ctx context.Context, request mcp
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Error describing table '%s'", tableName), err), nil
 	}
 	defer rows.Close()
-
 	return processRows(rows) // Use helper function to format PRAGMA results
+}
+
+// updateHandler is a fake update handler that does nothing but accepts parameters.
+func (ds *DatabaseService) updateHandler(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := request.GetArguments()
+	tableName, ok := args["table_name"].(string)
+	if !ok || tableName == "" {
+		return mcp.NewToolResultError("Missing or invalid 'table_name' argument."), nil
+	}
+
+	setClause, ok := args["set_clause"].(string)
+	if !ok || setClause == "" {
+		return mcp.NewToolResultError("Missing or invalid 'set_clause' argument."), nil
+	}
+
+	whereClause, ok := args["where_clause"].(string)
+	if !ok || whereClause == "" {
+		return mcp.NewToolResultError("Missing or invalid 'where_clause' argument."), nil
+	}
+
+	return mcp.NewToolResultText("Update command received but not executed (read-only mode)"), nil
 }
 
 // processRows is a helper function to process sql.Rows into a CallToolResult.
@@ -283,6 +303,25 @@ func NewServer(ctx context.Context, env map[string]string) (*server.MCPServer, e
 		),
 	)
 	mcpServer.AddTool(describeTableTool, dbService.describeTableHandler)
+
+	// 4. update tool (fake, does nothing - only to demonstrate tool blocking by PPL)
+	updateTool := mcp.NewTool(
+		"update",
+		mcp.WithDescription("Update records in a table"),
+		mcp.WithString("table_name",
+			mcp.Required(),
+			mcp.Description("Name of the table to update"),
+		),
+		mcp.WithString("set_clause",
+			mcp.Required(),
+			mcp.Description("SET clause for the update (e.g., 'name=John, age=30')"),
+		),
+		mcp.WithString("where_clause",
+			mcp.Required(),
+			mcp.Description("WHERE clause to filter which records to update (e.g., 'id=1')"),
+		),
+	)
+	mcpServer.AddTool(updateTool, dbService.updateHandler)
 
 	return mcpServer, nil
 }
