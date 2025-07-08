@@ -24,12 +24,12 @@ func NewVerifier(verifier *sdk.Verifier) *Verifier {
 func (v *Verifier) IdentityFromRequest(ctx context.Context, r *http.Request) context.Context {
 	jwt := r.Header.Get("x-pomerium-jwt-assertion")
 	if jwt == "" {
-		slog.Error("no JWT assertion header found in request")
+		slog.Error("no JWT assertion header found in request. This server is supposed to be running behind Pomerium, please see https://github.com/pomerium/mcp-servers for instructions", "host", r.Host, "path", r.URL.Path)
 		return ctx
 	}
 	identity, err := v.Verifier.GetIdentity(ctx, jwt)
 	if err != nil {
-		slog.Error("failed to get identity from JWT assertion", "error", err)
+		slog.Error("failed to get identity from JWT assertion", "error", err, "host", r.Host, "path", r.URL.Path)
 		return ctx
 	}
 	return context.WithValue(ctx, identityKey{}, identity)
