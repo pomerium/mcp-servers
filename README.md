@@ -258,6 +258,7 @@ Include a `redirect_url` query parameter that points back to your application's 
 
 After the user completes authentication, the MCP server's `connected` status should become `true`.
 
+
 ## 6. Obtaining User Details
 
 To access the authenticated user's identity and claims, both your MCP client application and MCP server should read the [`X-Pomerium-Assertion`](https://www.pomerium.com/docs/get-started/fundamentals/core/jwt-verification#manually-verify-the-jwt) HTTP header.

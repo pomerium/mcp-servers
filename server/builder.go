@@ -40,8 +40,12 @@ func BuildHandlers(ctx context.Context) http.Handler {
 		}
 		slog.Info("Enabled", "name", name)
 		httpHandler := server.NewStreamableHTTPServer(mcpServer,
-			server.WithHTTPContextFunc(ctxutil.AuthorizationTokenFromRequest),
-			server.WithHTTPContextFunc(ctxutil.NewVerifier(v).IdentityFromRequest),
+			server.WithHTTPContextFunc(
+				ctxutil.Combine(
+					ctxutil.AuthorizationTokenFromRequest,
+					ctxutil.NewVerifier(v).IdentityFromRequest,
+				),
+			),
 		)
 		mux.Handle(path.Join("/", name), http.HandlerFunc(httpHandler.ServeHTTP))
 	}
