@@ -258,15 +258,6 @@ Include a `redirect_url` query parameter that points back to your application's 
 
 After the user completes authentication, the MCP server's `connected` status should become `true`.
 
-### Purging Upstream OAuth Tokens
-
-To revoke and purge stored upstream OAuth tokens (e.g., when a user wants to disconnect from a service), make a DELETE request to the same endpoint:
-
-```
-DELETE https://db-mcp.your-domain.com/.pomerium/mcp/connect
-```
-
-This will remove the stored OAuth token and return a 204 No Content response. The user will need to re-authenticate the next time they try to access the MCP server.
 
 ## 6. Obtaining User Details
 
