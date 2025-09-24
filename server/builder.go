@@ -46,6 +46,7 @@ func BuildHandlers(ctx context.Context) http.Handler {
 					ctxutil.NewVerifier(v).IdentityFromRequest,
 				),
 			),
+			server.WithStateLess(true),
 		)
 		mux.Handle(path.Join("/", name), http.HandlerFunc(httpHandler.ServeHTTP))
 	}
