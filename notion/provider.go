@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/jomei/notionapi"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/pomerium/mcp-servers/ctxutil"
 	"github.com/pomerium/mcp-servers/drutil"
@@ -22,7 +22,7 @@ func New(context.Context) drutil.Provider {
 	}
 }
 
-func NewServer(ctx context.Context, _ map[string]string) (*server.MCPServer, error) {
+func NewServer(ctx context.Context, _ map[string]string) (*mcp.Server, error) {
 	provider := New(ctx)
 	mcpServer := drutil.BuildMCPServer("Notion", provider)
 	return mcpServer, nil

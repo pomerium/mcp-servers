@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/pomerium/mcp-servers/ctxutil"
 	"github.com/pomerium/mcp-servers/notion"
@@ -16,13 +16,18 @@ import (
 	"github.com/pomerium/sdk-go"
 )
 
+// contextKey is a type for context keys to avoid collisions
+type contextKey string
+
+const httpRequestKey contextKey = "http_request"
+
 func BuildHandlers(ctx context.Context) http.Handler {
 	mux := http.NewServeMux()
 
 	for name, builder := range map[string]func(
 		ctx context.Context,
 		env map[string]string,
-	) (*server.MCPServer, error){
+	) (*mcp.Server, error){
 		"notion": notion.NewServer,
 		"sqlite": sqlite.NewServer,
 		"whoami": whoami.NewServer,
@@ -39,16 +44,30 @@ func BuildHandlers(ctx context.Context) http.Handler {
 			continue
 		}
 		slog.Info("Enabled", "name", name)
-		httpHandler := server.NewStreamableHTTPServer(mcpServer,
-			server.WithHTTPContextFunc(
-				ctxutil.Combine(
-					ctxutil.AuthorizationTokenFromRequest,
-					ctxutil.NewVerifier(v).IdentityFromRequest,
-				),
-			),
-			server.WithStateLess(true),
-		)
-		mux.Handle(path.Join("/", name), http.HandlerFunc(httpHandler.ServeHTTP))
+
+		// Create a streamable HTTP handler
+		httpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
+			// Store the request in a context that tool handlers can access
+			// This will be done through a wrapper in the transport layer
+			return mcpServer
+		}, &mcp.StreamableHTTPOptions{
+			Stateless: true,
+		})
+
+		// Wrap the handler to add authentication context
+		wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Add the HTTP request to the context so tool handlers can access it
+			ctx := context.WithValue(r.Context(), httpRequestKey, r)
+			// Apply context transformations from Pomerium SDK
+			ctx = ctxutil.Combine(
+				ctxutil.AuthorizationTokenFromRequest,
+				ctxutil.NewVerifier(v).IdentityFromRequest,
+			)(ctx, r)
+			r = r.WithContext(ctx)
+			httpHandler.ServeHTTP(w, r)
+		})
+
+		mux.Handle(path.Join("/", name), wrappedHandler)
 	}
 
 	return mux
