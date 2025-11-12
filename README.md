@@ -45,7 +45,7 @@ services:
       - pomerium-autocert:/data/autocert
 
   mcp-servers:
-    image: pomerium/mcp-servers:latest
+    image: pomerium/mcp-servers:main
     expose:
       - 8080
     environment:
