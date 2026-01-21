@@ -2,25 +2,45 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
-
-	"github.com/pomerium/mcp-servers/httputil"
-	"github.com/pomerium/mcp-servers/server"
+	"path/filepath"
 )
 
+var programName = filepath.Base(os.Args[0])
+
 func main() {
-	err := run(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	if err := run(context.Background(), os.Args[1:]); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context) error {
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		port = "8080"
+func run(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		return printUsage()
 	}
-	handler := server.BuildHandlers(ctx)
-	return httputil.ListenAndServe(ctx, ":"+port, handler)
+
+	cmd, cmdArgs := args[0], args[1:]
+
+	switch cmd {
+	case "serve":
+		return serveCommand(ctx, cmdArgs)
+	case "help", "-h", "--help":
+		return printUsage()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", cmd)
+		return printUsage()
+	}
+}
+
+func printUsage() error {
+	fmt.Fprintf(os.Stderr, `Usage: %s <command> [options]
+
+Commands:
+  serve    Start the MCP server
+
+Use "%s <command> -h" for more information about a command.
+`, programName, programName)
+	return nil
 }
