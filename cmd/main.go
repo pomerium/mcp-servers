@@ -26,6 +26,8 @@ func run(ctx context.Context, args []string) error {
 	switch cmd {
 	case "serve":
 		return serveCommand(ctx, cmdArgs)
+	case "stdio-proxy":
+		return stdioProxyCommand(ctx, cmdArgs)
 	case "help", "-h", "--help":
 		return printUsage()
 	default:
@@ -38,7 +40,8 @@ func printUsage() error {
 	fmt.Fprintf(os.Stderr, `Usage: %s <command> [options]
 
 Commands:
-  serve    Start the MCP server
+  serve         Start the MCP server
+  stdio-proxy   Proxy HTTP requests to a stdio MCP server
 
 Use "%s <command> -h" for more information about a command.
 `, programName, programName)
