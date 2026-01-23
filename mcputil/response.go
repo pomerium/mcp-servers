@@ -3,14 +3,23 @@ package mcputil
 import (
 	"encoding/json"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func Response[T any](v T) *mcp.CallToolResult {
 	resultJSON, err := json.Marshal(v)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Error formatting response", err)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Error formatting response: " + err.Error()},
+			},
+			IsError: true,
+		}
 	}
 
-	return mcp.NewToolResultText(string(resultJSON))
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(resultJSON)},
+		},
+	}
 }

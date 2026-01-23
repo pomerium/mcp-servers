@@ -8,8 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	_ "modernc.org/sqlite" // SQLite driver
 )
 
@@ -50,17 +49,16 @@ func (ds *DatabaseService) Close() error {
 }
 
 // readQueryHandler is the handler function for the 'read_query' tool.
-func (ds *DatabaseService) readQueryHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.GetArguments()
-	query, ok := args["query"].(string)
-	if !ok || query == "" {
-		return mcp.NewToolResultError("Missing or invalid 'query' argument."), nil
-	}
-
+func (ds *DatabaseService) readQueryHandler(ctx context.Context, query string) (*mcp.CallToolResult, error) {
 	// --- Read-Only Validation ---
 	trimmedQuery := strings.TrimSpace(strings.ToUpper(query))
 	if !strings.HasPrefix(trimmedQuery, "SELECT") {
-		return mcp.NewToolResultError("Only SELECT queries are allowed for read-only access."), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Only SELECT queries are allowed for read-only access."},
+			},
+			IsError: true,
+		}, nil
 	}
 	// More robust validation could be added here if needed (e.g., disallowing PRAGMA, ATTACH etc.)
 
@@ -68,7 +66,12 @@ func (ds *DatabaseService) readQueryHandler(ctx context.Context, request mcp.Cal
 	rows, err := ds.db.QueryContext(ctx, query)
 	if err != nil {
 		log.Printf("Error executing query: %v, Query: %s", err, query)
-		return mcp.NewToolResultErrorFromErr("Error executing query", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error executing query: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 	defer rows.Close()
 
@@ -77,12 +80,17 @@ func (ds *DatabaseService) readQueryHandler(ctx context.Context, request mcp.Cal
 }
 
 // listTablesHandler lists all user tables in the database.
-func (ds *DatabaseService) listTablesHandler(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (ds *DatabaseService) listTablesHandler(ctx context.Context) (*mcp.CallToolResult, error) {
 	query := "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
 	rows, err := ds.db.QueryContext(ctx, query)
 	if err != nil {
 		log.Printf("Error listing tables: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error listing tables", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing tables: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 	defer rows.Close()
 
@@ -91,38 +99,56 @@ func (ds *DatabaseService) listTablesHandler(ctx context.Context, _ mcp.CallTool
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			log.Printf("Error scanning table name: %v", err)
-			return mcp.NewToolResultErrorFromErr("Error reading table name", err), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Error reading table name: %v", err)},
+				},
+				IsError: true,
+			}, nil
 		}
 		tables = append(tables, name)
 	}
 
 	if err := rows.Err(); err != nil {
 		log.Printf("Error iterating table list: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error iterating through table list", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error iterating through table list: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	// Format result as JSON array string
 	resultJSON, err := json.MarshalIndent(tables, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling table list to JSON: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error formatting table list", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error formatting table list: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(resultJSON)},
+		},
+	}, nil
 }
 
 // describeTableHandler provides schema information for a specific table.
-func (ds *DatabaseService) describeTableHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.GetArguments()
-	tableName, ok := args["table_name"].(string)
-	if !ok || tableName == "" {
-		return mcp.NewToolResultError("Missing or invalid 'table_name' argument."), nil
-	}
-
+func (ds *DatabaseService) describeTableHandler(ctx context.Context, tableName string) (*mcp.CallToolResult, error) {
 	// Basic validation to prevent SQL injection in PRAGMA
 	// A stricter validation (e.g., checking against list_tables result) is recommended for production
 	if strings.ContainsAny(tableName, "';--") {
-		return mcp.NewToolResultError("Invalid characters in table name."), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Invalid characters in table name."},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	// Use PRAGMA table_info with properly quoted table name to handle spaces and special characters
@@ -135,33 +161,31 @@ func (ds *DatabaseService) describeTableHandler(ctx context.Context, request mcp
 		// Check if the error is because the table doesn't exist
 		// Note: The specific error message might vary depending on the driver/SQLite version
 		if strings.Contains(err.Error(), "no such table") || strings.Contains(err.Error(), "unable to use function") {
-			return mcp.NewToolResultError(fmt.Sprintf("Table '%s' not found or PRAGMA query failed.", tableName)), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Table '%s' not found or PRAGMA query failed.", tableName)},
+				},
+				IsError: true,
+			}, nil
 		}
-		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Error describing table '%s'", tableName), err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error describing table '%s': %v", tableName, err)},
+			},
+			IsError: true,
+		}, nil
 	}
 	defer rows.Close()
 	return processRows(rows) // Use helper function to format PRAGMA results
 }
 
 // updateHandler is a fake update handler that does nothing but accepts parameters.
-func (ds *DatabaseService) updateHandler(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.GetArguments()
-	tableName, ok := args["table_name"].(string)
-	if !ok || tableName == "" {
-		return mcp.NewToolResultError("Missing or invalid 'table_name' argument."), nil
-	}
-
-	setClause, ok := args["set_clause"].(string)
-	if !ok || setClause == "" {
-		return mcp.NewToolResultError("Missing or invalid 'set_clause' argument."), nil
-	}
-
-	whereClause, ok := args["where_clause"].(string)
-	if !ok || whereClause == "" {
-		return mcp.NewToolResultError("Missing or invalid 'where_clause' argument."), nil
-	}
-
-	return mcp.NewToolResultText("Update command received but not executed (read-only mode)"), nil
+func (ds *DatabaseService) updateHandler(_, _, _ string) (*mcp.CallToolResult, error) {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "Update command received but not executed (read-only mode)"},
+		},
+	}, nil
 }
 
 // processRows is a helper function to process sql.Rows into a CallToolResult.
@@ -169,12 +193,22 @@ func processRows(rows *sql.Rows) (*mcp.CallToolResult, error) {
 	columns, err := rows.Columns()
 	if err != nil {
 		log.Printf("Error getting columns: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error getting result columns", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting result columns: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		log.Printf("Error getting column types: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error getting result column types", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting result column types: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	results := []map[string]interface{}{}
@@ -187,7 +221,12 @@ func processRows(rows *sql.Rows) (*mcp.CallToolResult, error) {
 
 		if err := rows.Scan(valuePtrs...); err != nil {
 			log.Printf("Error scanning row: %v", err)
-			return mcp.NewToolResultErrorFromErr("Error reading result row", err), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Error reading result row: %v", err)},
+				},
+				IsError: true,
+			}, nil
 		}
 
 		rowMap := make(map[string]interface{})
@@ -228,14 +267,24 @@ func processRows(rows *sql.Rows) (*mcp.CallToolResult, error) {
 
 	if err := rows.Err(); err != nil {
 		log.Printf("Error iterating rows: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error iterating through results", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error iterating through results: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	// --- Format Output ---
 	resultJSON, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling results to JSON: %v", err)
-		return mcp.NewToolResultErrorFromErr("Error formatting results", err), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error formatting results: %v", err)},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	// Limit the size of the output to avoid overly large responses
@@ -245,10 +294,14 @@ func processRows(rows *sql.Rows) (*mcp.CallToolResult, error) {
 		resultStr = resultStr[:maxResultSize] + "\n... (results truncated)"
 	}
 
-	return mcp.NewToolResultText(resultStr), nil
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: resultStr},
+		},
+	}, nil
 }
 
-func NewServer(ctx context.Context, env map[string]string) (*server.MCPServer, error) {
+func NewServer(ctx context.Context, env map[string]string) (*mcp.Server, error) {
 	dbFile, ok := env["DB_FILE"]
 	if !ok || dbFile == "" {
 		return nil, fmt.Errorf("DB_FILE environment variable not set or empty")
@@ -265,63 +318,62 @@ func NewServer(ctx context.Context, env map[string]string) (*server.MCPServer, e
 	}()
 
 	// Create MCP Server
-	mcpServer := server.NewMCPServer(
-		"sqlite-readonly",
-		"1.0.0",
-		server.WithToolCapabilities(true), // Enable tools
-		server.WithLogging(),              // Enable basic logging via MCP
-		server.WithRecovery(),             // Add panic recovery middleware
+	mcpServer := mcp.NewServer(
+		&mcp.Implementation{
+			Name:    "sqlite-readonly",
+			Version: "1.0.0",
+		},
+		nil,
 	)
 
-	// --- Define Tools ---
+	// Define tool argument types
+	type readQueryArgs struct {
+		Query string `json:"query" jsonschema:"The SELECT SQL query to execute"`
+	}
+	type describeTableArgs struct {
+		TableName string `json:"table_name" jsonschema:"Name of the table to describe"`
+	}
+	type updateArgs struct {
+		TableName   string `json:"table_name" jsonschema:"Name of the table to update"`
+		SetClause   string `json:"set_clause" jsonschema:"SET clause for the update (e.g. 'name=John, age=30')"`
+		WhereClause string `json:"where_clause" jsonschema:"WHERE clause to filter which records to update (e.g. 'id=1')"`
+	}
 
-	// 1. read_query tool
-	readQueryTool := mcp.NewTool(
-		"read_query",
-		mcp.WithDescription("Execute a read-only SELECT query on the SQLite database"),
-		mcp.WithString("query",
-			mcp.Required(),
-			mcp.Description("The SELECT SQL query to execute"),
-		),
-	)
-	mcpServer.AddTool(readQueryTool, dbService.readQueryHandler)
+	// Add read_query tool
+	mcp.AddTool(mcpServer, &mcp.Tool{
+		Name:        "read_query",
+		Description: "Execute a read-only SELECT query on the SQLite database",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, args readQueryArgs) (*mcp.CallToolResult, any, error) {
+		result, err := dbService.readQueryHandler(ctx, args.Query)
+		return result, nil, err
+	})
 
-	// 2. list_tables tool
-	listTablesTool := mcp.NewTool(
-		"list_tables",
-		mcp.WithDescription("List all user tables in the SQLite database"),
-	)
-	mcpServer.AddTool(listTablesTool, dbService.listTablesHandler)
+	// Add list_tables tool
+	mcp.AddTool(mcpServer, &mcp.Tool{
+		Name:        "list_tables",
+		Description: "List all user tables in the SQLite database",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		result, err := dbService.listTablesHandler(ctx)
+		return result, nil, err
+	})
 
-	// 3. describe_table tool
-	describeTableTool := mcp.NewTool(
-		"describe_table",
-		mcp.WithDescription("Get the schema information (columns, types) for a specific table"),
-		mcp.WithString("table_name",
-			mcp.Required(),
-			mcp.Description("Name of the table to describe"),
-		),
-	)
-	mcpServer.AddTool(describeTableTool, dbService.describeTableHandler)
+	// Add describe_table tool
+	mcp.AddTool(mcpServer, &mcp.Tool{
+		Name:        "describe_table",
+		Description: "Get the schema information (columns, types) for a specific table",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, args describeTableArgs) (*mcp.CallToolResult, any, error) {
+		result, err := dbService.describeTableHandler(ctx, args.TableName)
+		return result, nil, err
+	})
 
-	// 4. update tool (fake, does nothing - only to demonstrate tool blocking by PPL)
-	updateTool := mcp.NewTool(
-		"update",
-		mcp.WithDescription("Update records in a table"),
-		mcp.WithString("table_name",
-			mcp.Required(),
-			mcp.Description("Name of the table to update"),
-		),
-		mcp.WithString("set_clause",
-			mcp.Required(),
-			mcp.Description("SET clause for the update (e.g., 'name=John, age=30')"),
-		),
-		mcp.WithString("where_clause",
-			mcp.Required(),
-			mcp.Description("WHERE clause to filter which records to update (e.g., 'id=1')"),
-		),
-	)
-	mcpServer.AddTool(updateTool, dbService.updateHandler)
+	// Add update tool (fake, does nothing - only to demonstrate tool blocking by PPL)
+	mcp.AddTool(mcpServer, &mcp.Tool{
+		Name:        "update",
+		Description: "Update records in a table",
+	}, func(_ context.Context, _ *mcp.CallToolRequest, args updateArgs) (*mcp.CallToolResult, any, error) {
+		result, err := dbService.updateHandler(args.TableName, args.SetClause, args.WhereClause)
+		return result, nil, err
+	})
 
 	return mcpServer, nil
 }

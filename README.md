@@ -45,7 +45,7 @@ services:
       - pomerium-autocert:/data/autocert
 
   mcp-servers:
-    image: pomerium/mcp-servers:latest
+    image: pomerium/mcp-servers:main
     expose:
       - 8080
     environment:
@@ -257,6 +257,7 @@ Include a `redirect_url` query parameter that points back to your application's 
 **Note:** For security, the `redirect_url` must be a host that matches one of your MCP Client routes.
 
 After the user completes authentication, the MCP server's `connected` status should become `true`.
+
 
 ## 6. Obtaining User Details
 
