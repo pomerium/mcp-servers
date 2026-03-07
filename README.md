@@ -14,6 +14,7 @@ This repository contains a collection of reference MCP Streaming HTTP servers de
 
 1. Choose your preferred Pomerium installation method below.
 2. Configure the relevant MCP server(s):
+   - [Pomerium](./pomerium/README.md): Manage and control a Pomerium instance (routes, policies, settings, certificates, service accounts) via MCP tools.
    - [Notion](./notion/README.md): A tailored Notion MCP server that uses Notion OAuth for the current user and specifically implements [OpenAI Deep Researcher requirements](https://platform.openai.com/docs/mcp).
    - [SQLite](./sqlite/README.md): A simple readonly MCP server that can query SQLite databases.
 
