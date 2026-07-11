@@ -27,7 +27,7 @@ func (v *Verifier) IdentityFromRequest(ctx context.Context, r *http.Request) con
 		slog.Error("no JWT assertion header found in request. This server is supposed to be running behind Pomerium, please see https://github.com/pomerium/mcp-servers for instructions", "host", r.Host, "path", r.URL.Path)
 		return ctx
 	}
-	identity, err := v.Verifier.GetIdentity(ctx, jwt)
+	identity, err := v.GetIdentity(ctx, jwt)
 	if err != nil {
 		slog.Error("failed to get identity from JWT assertion", "error", err, "host", r.Host, "path", r.URL.Path)
 		return ctx
