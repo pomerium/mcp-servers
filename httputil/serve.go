@@ -33,7 +33,7 @@ func ListenAndServe(
 	go func() {
 		<-ctx.Done()
 		slog.Info("shutting down HTTP server")
-		sctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*10)
 		defer cancel()
 		_ = srv.Shutdown(sctx)
 	}()
